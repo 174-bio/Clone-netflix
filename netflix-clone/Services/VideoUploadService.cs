@@ -24,13 +24,63 @@ public sealed class VideoUploadService
         }
 
         var directory = configuration["Uploads:Directory"] ?? "Data/uploads";
-        _uploadDirectory = Path.IsPathRooted(directory)
-            ? directory
-            : Path.Combine(AppContext.BaseDirectory, directory);
+        _uploadDirectory = ResolveDirectory(directory);
         Directory.CreateDirectory(_uploadDirectory);
     }
 
     public long MaxFileSize => _maxFileSize;
+    public string UploadDirectory => _uploadDirectory;
+
+    private static string ResolveDirectory(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            directory = "Data/uploads";
+        }
+
+        if (Path.IsPathRooted(directory))
+        {
+            return directory;
+        }
+
+        var basePath = AppContext.BaseDirectory;
+        var candidate = Path.Combine(basePath, directory);
+        var projectRoot = ResolveProjectRoot(basePath);
+
+        if (!string.IsNullOrEmpty(projectRoot))
+        {
+            candidate = Path.Combine(projectRoot, directory);
+        }
+
+        return candidate;
+    }
+
+    private static string? ResolveProjectRoot(string basePath)
+    {
+        var current = new DirectoryInfo(basePath);
+        while (current != null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "NetflixClone.csproj")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        current = new DirectoryInfo(basePath);
+        while (current != null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "appsettings.json")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        return null;
+    }
 
     public async Task<string> SaveAsync(
         Stream source,

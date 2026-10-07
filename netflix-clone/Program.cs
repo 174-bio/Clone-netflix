@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.FileProviders;
 using NetflixClone.Models;
 using NetflixClone.Services;
 
@@ -65,7 +66,13 @@ app.Use(async (context, next) =>
 app.UseCors();
 app.UseRateLimiter();
 app.UseDefaultFiles();
+var uploadService = app.Services.GetRequiredService<VideoUploadService>();
 app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadService.UploadDirectory),
+    RequestPath = "/uploads"
+});
 
 // Helper seguro para autenticação de sessão via Bearer Token validado
 static string? ResolveUserIdFromSession(HttpContext context, MovieService service)
