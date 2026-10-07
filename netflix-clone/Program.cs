@@ -4,7 +4,8 @@ using NetflixClone.Models;
 using NetflixClone.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls("http://localhost:5167");
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5167";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // Injeção do MovieService como Singleton
 builder.Services.AddSingleton<MovieService>();
