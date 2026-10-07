@@ -55,7 +55,7 @@
 - **Backend**: C# 10 / ASP.NET Core Minimal APIs (.NET 10)
 - **Frontend**: HTML5 Semântico, Vanilla JavaScript (ES6+ modular)
 - **Estilização**: Vanilla CSS3 com Variáveis de Design, Flexbox, CSS Grid, Glassmorphism e Keyframe Animations
-- **Armazenamento de Dados**: Persistência estruturada em JSON no servidor (`Data/cinestream_data.json`)
+- **Banco de Dados**: SQLite (`Data/cinestream.db`) para contas, catálogo e dados dos usuários
 - **Vídeos**: Streams em MP4 abertos e compatíveis com todos os navegadores modernos
 
 ---
@@ -85,6 +85,26 @@
 4. **Acesse no seu navegador:**
    Abra [http://localhost:5167](http://localhost:5167)
 
+O banco SQLite é criado automaticamente na primeira execução. Os dados de uma instalação
+anterior em `Data/cinestream_data.json` são importados automaticamente. Para escolher outro
+caminho para o arquivo do banco, configure a variável de ambiente `Database__Path`;
+em produção, use um volume persistente para que o banco sobreviva a novos deploys.
+
+### Painel de administração e envio de vídeos
+
+Configure `Admin__Emails` no ambiente do servidor com os e-mails das contas autorizadas,
+separados por vírgula. Cadastre uma conta com um desses e-mails e entre no site; o menu
+do perfil mostrará **Gerenciar catálogo**. O painel permite criar, editar e excluir filmes
+e séries, manter episódios, enviar vídeos MP4/WebM e escolher o título em destaque.
+Não autorize `demo@cinestream.tv`: essa conta de demonstração tem credenciais públicas.
+
+Os vídeos são gravados em `Data/uploads` por padrão. O limite padrão é 1 GB por arquivo;
+configure `Uploads__MaxFileSizeBytes` para alterar. Para hospedagem em contêiner, monte um
+volume persistente e configure `Uploads__Directory` para o caminho do volume. Por exemplo,
+em Render, monte o disco em `/var/data` e defina `Database__Path=/var/data/cinestream.db`,
+`Uploads__Directory=/var/data/uploads` e `Admin__Emails=seu-email@exemplo.com`.
+O disco efêmero do plano gratuito não preserva vídeos nem banco após reinícios/deploys.
+
 ---
 
 ## 👤 Credenciais de Demonstração
@@ -97,6 +117,13 @@ Para testar imediatamente sem precisar preencher o formulário de cadastro:
 ---
 
 ## 📡 Endpoints da API REST
+
+### Administração do Catálogo (exige e-mail autorizado em `Admin__Emails`)
+- `GET /api/admin/movies` — Listar títulos para administração
+- `POST /api/admin/movies` — Criar um filme ou série
+- `PUT /api/admin/movies/{id}` — Editar um título e seus episódios
+- `DELETE /api/admin/movies/{id}` — Excluir um título
+- `POST /api/admin/videos?fileName={nome}` — Enviar um vídeo MP4/WebM (máximo padrão de 1 GB)
 
 ### Autenticação & Perfil
 - `POST /api/auth/register` — Cadastro de usuário

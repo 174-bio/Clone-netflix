@@ -3,13 +3,16 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using NetflixClone.Models;
 
 namespace NetflixClone.Services;
 
 public class MovieService
 {
-    private readonly string _dataFilePath;
+    private readonly SqliteDataStore _dataStore;
+    private readonly ILogger<MovieService> _logger;
+    private readonly HashSet<string> _adminEmails;
     private readonly object _lock = new();
 
     private List<User> _users = new();
@@ -24,11 +27,19 @@ public class MovieService
     private const int SaltSize = 16;
     private const int KeySize = 32;
 
-    public MovieService()
+    public MovieService(IConfiguration configuration, ILogger<MovieService> logger)
     {
-        var dataDir = Path.Combine(AppContext.BaseDirectory, "Data");
-        Directory.CreateDirectory(dataDir);
-        _dataFilePath = Path.Combine(dataDir, "cinestream_data.json");
+        _logger = logger;
+        _adminEmails = (configuration["Admin:Emails"] ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var databasePath = configuration["Database:Path"] ?? "Data/cinestream.db";
+        if (!Path.IsPathRooted(databasePath))
+        {
+            databasePath = Path.Combine(AppContext.BaseDirectory, databasePath);
+        }
+
+        _dataStore = new SqliteDataStore(databasePath);
 
         LoadData();
     }
@@ -113,29 +124,39 @@ public class MovieService
     {
         lock (_lock)
         {
-            if (File.Exists(_dataFilePath))
+            var payload = _dataStore.Load();
+            if (payload.Movies.Count >= 20)
+            {
+                RestorePayload(payload);
+                _sessions.RemoveAll(s => s.ExpiresAt <= DateTime.UtcNow);
+                return;
+            }
+
+            if (!_dataStore.IsEmpty)
+            {
+                throw new InvalidDataException("O banco SQLite contém dados incompletos e não será sobrescrito.");
+            }
+
+            var legacyDataPath = Path.Combine(AppContext.BaseDirectory, "Data", "cinestream_data.json");
+            if (File.Exists(legacyDataPath))
             {
                 try
                 {
-                    var json = File.ReadAllText(_dataFilePath);
-                    var payload = JsonSerializer.Deserialize<DataStorePayload>(json);
-                    if (payload != null && payload.Movies.Count >= 20)
+                    var json = File.ReadAllText(legacyDataPath);
+                    var legacyPayload = JsonSerializer.Deserialize<DataStorePayload>(json);
+                    if (legacyPayload?.Movies.Count >= 20)
                     {
-                        _users = payload.Users ?? new();
-                        _movies = payload.Movies ?? new();
-                        _watchlist = payload.Watchlist ?? new();
-                        _progress = payload.Progress ?? new();
-                        _ratings = payload.Ratings ?? new();
-                        _sessions = payload.Sessions ?? new();
-
-                        // Remove sessões expiradas
+                        RestorePayload(legacyPayload);
                         _sessions.RemoveAll(s => s.ExpiresAt <= DateTime.UtcNow);
+                        SaveData();
+                        _logger.LogInformation("Dados migrados de {LegacyDataPath} para SQLite.", legacyDataPath);
                         return;
                     }
                 }
-                catch
+                catch (Exception ex) when (ex is JsonException or IOException)
                 {
-                    // Fallback to fresh seed se arquivo corrompido
+                    _logger.LogError(ex, "Não foi possível migrar os dados legados de {LegacyDataPath}.", legacyDataPath);
+                    throw new InvalidDataException("Falha ao migrar os dados legados para SQLite.", ex);
                 }
             }
 
@@ -144,43 +165,40 @@ public class MovieService
         }
     }
 
+    private void RestorePayload(DataStorePayload payload)
+    {
+        _users = payload.Users ?? new();
+        _movies = payload.Movies ?? new();
+        _watchlist = payload.Watchlist ?? new();
+        _progress = payload.Progress ?? new();
+        _ratings = payload.Ratings ?? new();
+        _sessions = payload.Sessions ?? new();
+        _resetTokens = payload.ResetTokens ?? new();
+    }
+
     private void SaveData()
     {
         lock (_lock)
         {
             try
             {
-                var payload = new DataStorePayload
+                _dataStore.Save(new DataStorePayload
                 {
                     Users = _users,
                     Movies = _movies,
                     Watchlist = _watchlist,
                     Progress = _progress,
                     Ratings = _ratings,
-                    Sessions = _sessions
-                };
-                var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
-
-                // Gravação atômica via arquivo temporário para evitar corrupção de dados
-                var tempPath = _dataFilePath + ".tmp";
-                File.WriteAllText(tempPath, json);
-                File.Move(tempPath, _dataFilePath, overwrite: true);
+                    Sessions = _sessions,
+                    ResetTokens = _resetTokens
+                });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro ao salvar banco de dados: {ex.Message}");
+                _logger.LogError(ex, "Erro ao salvar os dados no banco SQLite.");
+                throw;
             }
         }
-    }
-
-    private class DataStorePayload
-    {
-        public List<User> Users { get; set; } = new();
-        public List<Movie> Movies { get; set; } = new();
-        public List<WatchlistItem> Watchlist { get; set; } = new();
-        public List<WatchProgress> Progress { get; set; } = new();
-        public List<UserRatingRecord> Ratings { get; set; } = new();
-        public List<UserSession> Sessions { get; set; } = new();
     }
 
     private void SeedInitialData()
@@ -1220,7 +1238,7 @@ public class MovieService
         return session;
     }
 
-    private static User SanitizeUser(User user)
+    private User SanitizeUser(User user)
     {
         return new User
         {
@@ -1230,7 +1248,8 @@ public class MovieService
             PasswordHash = "",
             Avatar = user.Avatar,
             CreatedAt = user.CreatedAt,
-            Preferences = user.Preferences
+            Preferences = user.Preferences,
+            IsAdmin = _adminEmails.Contains(user.Email)
         };
     }
 
@@ -1632,6 +1651,118 @@ public class MovieService
 
             SaveData();
             return score;
+        }
+    }
+
+    public List<Movie> GetAdminCatalog()
+    {
+        lock (_lock)
+        {
+            return _movies.Select(movie => DecorateMovie(movie, null)).ToList();
+        }
+    }
+
+    public Movie? SaveCatalogMovie(int? id, CatalogMovieRequest request)
+    {
+        lock (_lock)
+        {
+            var existing = id.HasValue ? _movies.FirstOrDefault(movie => movie.Id == id.Value) : null;
+            if (id.HasValue && existing == null)
+            {
+                return null;
+            }
+
+            var movieId = existing?.Id ?? (_movies.Count == 0 ? 1 : _movies.Max(movie => movie.Id) + 1);
+            var previousEpisodes = existing?.Episodes ?? new List<Episode>();
+            var nextEpisodeId = _movies.SelectMany(movie => movie.Episodes)
+                .Select(episode => episode.Id)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            var episodes = request.Episodes.Select(episode =>
+            {
+                var previousEpisode = previousEpisodes.FirstOrDefault(item =>
+                    item.Season == episode.Season && item.Number == episode.Number);
+                return new Episode
+                {
+                    Id = previousEpisode?.Id ?? ++nextEpisodeId,
+                    SeriesId = movieId,
+                    Season = episode.Season,
+                    Number = episode.Number,
+                    Title = episode.Title.Trim(),
+                    Description = episode.Description?.Trim() ?? string.Empty,
+                    Duration = episode.Duration?.Trim() ?? string.Empty,
+                    ThumbnailUrl = episode.ThumbnailUrl?.Trim() ?? string.Empty,
+                    VideoUrl = episode.VideoUrl?.Trim() ?? string.Empty
+                };
+            }).ToList();
+
+            var movie = new Movie
+            {
+                Id = movieId,
+                Title = request.Title.Trim(),
+                Description = request.Description.Trim(),
+                Type = request.Type,
+                BackdropUrl = request.BackdropUrl.Trim(),
+                PosterUrl = request.PosterUrl.Trim(),
+                VideoUrl = request.VideoUrl.Trim(),
+                Year = request.Year,
+                Rating = request.Rating,
+                Score = request.Score,
+                MatchScore = request.MatchScore,
+                Duration = request.Duration.Trim(),
+                Genres = request.Genres.Where(genre => !string.IsNullOrWhiteSpace(genre)).Select(genre => genre.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                Cast = request.Cast.Where(person => !string.IsNullOrWhiteSpace(person)).Select(person => person.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                Director = request.Director?.Trim() ?? string.Empty,
+                IsFeatured = request.IsFeatured,
+                Likes = existing?.Likes ?? 0,
+                Episodes = episodes
+            };
+
+            if (movie.IsFeatured)
+            {
+                foreach (var featuredMovie in _movies)
+                {
+                    featuredMovie.IsFeatured = false;
+                }
+            }
+
+            if (existing == null)
+            {
+                _movies.Add(movie);
+            }
+            else
+            {
+                _movies[_movies.IndexOf(existing)] = movie;
+            }
+
+            SaveData();
+            return DecorateMovie(movie, null);
+        }
+    }
+
+    public Movie? DeleteCatalogMovie(int id)
+    {
+        lock (_lock)
+        {
+            var movie = _movies.FirstOrDefault(item => item.Id == id);
+            if (movie == null)
+            {
+                return null;
+            }
+
+            _movies.Remove(movie);
+            _watchlist.RemoveAll(item => item.MovieId == id);
+            _progress.RemoveAll(item => item.MovieId == id);
+            _ratings.RemoveAll(item => item.MovieId == id);
+
+            if (movie.IsFeatured && _movies.Count > 0)
+            {
+                _movies[0].IsFeatured = true;
+            }
+
+            SaveData();
+            return DecorateMovie(movie, null);
         }
     }
 

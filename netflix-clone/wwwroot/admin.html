@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0e12">
+  <title>Gerenciar catálogo — CineStream</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="js/admin.js" defer></script>
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <a class="brand-logo" href="/" aria-label="Voltar para CineStream">
+      <span class="brand-name">CINE<span>STREAM</span></span>
+    </a>
+    <a class="btn btn-outline" href="/">Voltar ao site</a>
+  </header>
+
+  <main class="admin-main">
+    <section class="admin-heading">
+      <div>
+        <p class="admin-eyebrow">PAINEL DE ADMINISTRAÇÃO</p>
+        <h1>Gerenciar catálogo</h1>
+        <p>Adicione títulos, organize as informações e envie seus vídeos.</p>
+      </div>
+      <button class="btn btn-primary" id="newMovieBtn" type="button">+ Novo título</button>
+    </section>
+
+    <div class="admin-notice" id="adminNotice" role="status" hidden></div>
+
+    <section class="admin-catalog">
+      <div class="admin-section-heading">
+        <div>
+          <h2>Títulos publicados</h2>
+          <span id="catalogCount">Carregando catálogo…</span>
+        </div>
+        <label class="admin-search">
+          <span class="sr-only">Buscar título</span>
+          <input id="catalogSearch" type="search" placeholder="Buscar título…">
+        </label>
+      </div>
+      <div class="admin-title-list" id="catalogList" aria-live="polite"></div>
+    </section>
+
+    <section class="admin-editor" id="movieEditor">
+      <div class="admin-section-heading">
+        <div>
+          <p class="admin-eyebrow">EDITOR DO CATÁLOGO</p>
+          <h2 id="editorTitle">Novo título</h2>
+        </div>
+        <button class="btn btn-outline" id="cancelEditBtn" type="button">Cancelar</button>
+      </div>
+
+      <form id="movieForm">
+        <input id="movieId" type="hidden">
+        <div class="admin-form-grid">
+          <label class="admin-field admin-field-wide">
+            <span>Título</span>
+            <input id="movieTitle" name="Title" maxlength="150" required>
+          </label>
+          <label class="admin-field">
+            <span>Tipo</span>
+            <select id="movieType" name="Type">
+              <option value="movie">Filme</option>
+              <option value="series">Série</option>
+            </select>
+          </label>
+          <label class="admin-field">
+            <span>Ano</span>
+            <input id="movieYear" name="Year" type="number" min="1888" required>
+          </label>
+          <label class="admin-field">
+            <span>Duração / temporadas</span>
+            <input id="movieDuration" name="Duration" maxlength="60" placeholder="2h 10m ou 3 temporadas" required>
+          </label>
+          <label class="admin-field">
+            <span>Classificação indicativa</span>
+            <select id="movieRating" name="Rating">
+              <option>Livre</option>
+              <option>10+</option>
+              <option>12+</option>
+              <option>14+</option>
+              <option>16+</option>
+              <option>18+</option>
+            </select>
+          </label>
+          <label class="admin-field">
+            <span>Nota (0 a 10)</span>
+            <input id="movieScore" name="Score" type="number" min="0" max="10" step="0.1" required>
+          </label>
+          <label class="admin-field">
+            <span>Relevância (0 a 100)</span>
+            <input id="movieMatchScore" name="MatchScore" type="number" min="0" max="100" required>
+          </label>
+          <label class="admin-field admin-field-wide">
+            <span>Sinopse</span>
+            <textarea id="movieDescription" name="Description" maxlength="4000" rows="4" required></textarea>
+          </label>
+          <label class="admin-field">
+            <span>URL do pôster</span>
+            <input id="moviePoster" name="PosterUrl" type="url" maxlength="2048" required placeholder="https://…">
+          </label>
+          <label class="admin-field">
+            <span>URL da imagem de fundo</span>
+            <input id="movieBackdrop" name="BackdropUrl" type="url" maxlength="2048" required placeholder="https://…">
+          </label>
+          <label class="admin-field">
+            <span>Direção</span>
+            <input id="movieDirector" name="Director" maxlength="120">
+          </label>
+          <label class="admin-field">
+            <span>Gêneros (separados por vírgula)</span>
+            <input id="movieGenres" name="Genres" maxlength="500" placeholder="Ação, Drama">
+          </label>
+          <label class="admin-field admin-field-wide">
+            <span>Elenco (separado por vírgula)</span>
+            <input id="movieCast" name="Cast" maxlength="1000" placeholder="Nome do ator, Nome da atriz">
+          </label>
+          <div class="admin-field admin-field-wide">
+            <label for="movieVideoUrl">Vídeo principal (MP4 ou WebM)</label>
+            <div class="admin-upload-row">
+              <input id="movieVideoUrl" name="VideoUrl" type="text" maxlength="2048" placeholder="URL do vídeo ou envie um arquivo">
+              <input class="admin-file-input" id="movieVideoFile" type="file" accept="video/mp4,video/webm,.mp4,.webm">
+              <button class="btn btn-outline upload-video-btn" type="button" data-file-input="movieVideoFile" data-url-input="movieVideoUrl">Enviar vídeo</button>
+            </div>
+            <progress class="admin-upload-progress" id="movieVideoProgress" max="100" value="0" hidden></progress>
+            <small>MP4/WebM; máximo configurado pelo servidor (padrão: 1 GB).</small>
+          </div>
+          <label class="admin-featured admin-field-wide">
+            <input id="movieFeatured" name="IsFeatured" type="checkbox">
+            <span>Exibir como título em destaque na página inicial</span>
+          </label>
+        </div>
+
+        <section class="admin-episodes" id="episodesSection" hidden>
+          <div class="admin-section-heading">
+            <div>
+              <h3>Episódios</h3>
+              <span>Adicione temporadas, informações e um vídeo para cada episódio.</span>
+            </div>
+            <button class="btn btn-outline" id="addEpisodeBtn" type="button">+ Episódio</button>
+          </div>
+          <div id="episodeList"></div>
+        </section>
+
+        <div class="admin-form-actions">
+          <button class="btn btn-outline" id="resetFormBtn" type="button">Limpar formulário</button>
+          <button class="btn btn-primary" id="saveMovieBtn" type="submit">Salvar título</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,5 +1,7 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using NetflixClone.Models;
 using NetflixClone.Services;
 
@@ -9,6 +11,7 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // Injeção do MovieService como Singleton
 builder.Services.AddSingleton<MovieService>();
+builder.Services.AddSingleton<VideoUploadService>();
 
 // Preserva nomes e serialização JSON padronizada
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -78,6 +81,86 @@ static string? ResolveUserIdFromSession(HttpContext context, MovieService servic
         }
     }
     return null;
+}
+
+static bool IsAdminRequest(HttpContext context, MovieService service)
+{
+    if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader))
+    {
+        return false;
+    }
+
+    var raw = authHeader.ToString();
+    if (!raw.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+    {
+        return false;
+    }
+
+    var token = raw["Bearer ".Length..].Trim();
+    return service.GetUserBySessionToken(token)?.IsAdmin == true;
+}
+
+static string? ValidateCatalogMovie(CatalogMovieRequest request, VideoUploadService uploads)
+{
+    static bool IsHttpUrl(string? value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.Length <= 2048
+        && Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+
+    if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length > 150)
+        return "Informe um título com até 150 caracteres.";
+    if (string.IsNullOrWhiteSpace(request.Description) || request.Description.Length > 4000)
+        return "Informe uma sinopse com até 4.000 caracteres.";
+    if (request.Type is not "movie" and not "series")
+        return "O tipo deve ser filme ou série.";
+    if (request.Year < 1888 || request.Year > DateTime.UtcNow.Year + 10)
+        return "Informe um ano de lançamento válido.";
+    if (request.Rating is not "Livre" and not "10+" and not "12+" and not "14+" and not "16+" and not "18+")
+        return "Selecione uma classificação indicativa válida.";
+    if (!double.IsFinite(request.Score) || request.Score < 0 || request.Score > 10)
+        return "A nota deve estar entre 0 e 10.";
+    if (request.MatchScore is < 0 or > 100)
+        return "A relevância deve estar entre 0 e 100.";
+    if (string.IsNullOrWhiteSpace(request.Duration) || request.Duration.Length > 60)
+        return "Informe uma duração com até 60 caracteres.";
+    if (request.Director?.Length > 120)
+        return "O nome da direção deve ter até 120 caracteres.";
+    if (request.Genres is null || request.Genres.Count > 12 || request.Genres.Any(item => string.IsNullOrWhiteSpace(item) || item.Length > 40))
+        return "Informe até 12 gêneros com no máximo 40 caracteres cada.";
+    if (request.Cast is null || request.Cast.Count > 50 || request.Cast.Any(item => string.IsNullOrWhiteSpace(item) || item.Length > 100))
+        return "Informe até 50 pessoas no elenco com no máximo 100 caracteres cada.";
+    if (request.Episodes is null || request.Episodes.Count > 100)
+        return "Uma série pode ter no máximo 100 episódios.";
+    if (request.Episodes.Any(episode =>
+        episode is null
+        || episode.Season < 1
+        || episode.Number < 1
+        || string.IsNullOrWhiteSpace(episode.Title)
+        || episode.Title.Length > 150
+        || episode.Description?.Length > 2000
+        || episode.Duration?.Length > 60
+        || (!string.IsNullOrEmpty(episode.ThumbnailUrl) && !IsHttpUrl(episode.ThumbnailUrl))
+        || !IsAllowedVideoUrl(episode.VideoUrl, uploads)))
+        return "Revise os dados dos episódios. Cada episódio precisa de título e vídeo válido.";
+    if (request.Episodes.GroupBy(episode => (episode.Season, episode.Number)).Any(group => group.Count() > 1))
+        return "Não repita o número de um episódio na mesma temporada.";
+    if (!IsHttpUrl(request.PosterUrl) || !IsHttpUrl(request.BackdropUrl))
+        return "Informe URLs HTTP ou HTTPS válidas para o pôster e a imagem de fundo.";
+    if (request.Type == "movie" && !IsAllowedVideoUrl(request.VideoUrl, uploads))
+        return "Informe ou envie o vídeo do filme.";
+    if (request.Type == "series" && request.Episodes.Count == 0 && !IsAllowedVideoUrl(request.VideoUrl, uploads))
+        return "Adicione episódios com vídeo ou informe um vídeo para a série.";
+    if (!string.IsNullOrWhiteSpace(request.VideoUrl) && !IsAllowedVideoUrl(request.VideoUrl, uploads))
+        return "O vídeo principal precisa usar uma URL HTTP/HTTPS ou um arquivo enviado pelo painel.";
+
+    return null;
+
+    static bool IsAllowedVideoUrl(string? value, VideoUploadService uploadService) =>
+        !string.IsNullOrWhiteSpace(value)
+        && (uploadService.IsManagedVideoUrl(value)
+            || (Uri.TryCreate(value, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)));
 }
 
 // ==========================================
@@ -246,6 +329,110 @@ app.MapPost("/api/movies/{id:int}/like", (MovieService service, int id) =>
 {
     var newLikes = service.ToggleLike(id);
     return Results.Ok(new { movieId = id, likes = newLikes });
+});
+
+// ==========================================
+// ADMIN CATALOG MANAGEMENT
+// ==========================================
+
+app.MapGet("/api/admin/movies", (HttpContext ctx, MovieService service) =>
+{
+    if (!IsAdminRequest(ctx, service)) return Results.Unauthorized();
+    return Results.Ok(service.GetAdminCatalog());
+});
+
+app.MapPost("/api/admin/movies", (HttpContext ctx, MovieService service, VideoUploadService uploads, CatalogMovieRequest request) =>
+{
+    if (!IsAdminRequest(ctx, service)) return Results.Unauthorized();
+
+    var validationError = ValidateCatalogMovie(request, uploads);
+    if (validationError != null) return Results.BadRequest(new { Message = validationError });
+
+    var movie = service.SaveCatalogMovie(null, request);
+    return Results.Created($"/api/movies/{movie!.Id}", movie);
+});
+
+app.MapPut("/api/admin/movies/{id:int}", (HttpContext ctx, MovieService service, VideoUploadService uploads, int id, CatalogMovieRequest request) =>
+{
+    if (!IsAdminRequest(ctx, service)) return Results.Unauthorized();
+
+    var validationError = ValidateCatalogMovie(request, uploads);
+    if (validationError != null) return Results.BadRequest(new { Message = validationError });
+
+    var previous = service.GetMovieById(id);
+    if (previous == null) return Results.NotFound(new { Message = "Título não encontrado." });
+
+    var movie = service.SaveCatalogMovie(id, request);
+    var retainedVideoUrls = service.GetAdminCatalog()
+        .SelectMany(item => new[] { item.VideoUrl }.Concat(item.Episodes.Select(episode => episode.VideoUrl)))
+        .ToHashSet(StringComparer.Ordinal);
+    foreach (var oldVideoUrl in new[] { previous.VideoUrl }.Concat(previous.Episodes.Select(episode => episode.VideoUrl)).Distinct(StringComparer.Ordinal))
+    {
+        if (!retainedVideoUrls.Contains(oldVideoUrl)) uploads.DeleteManagedVideo(oldVideoUrl);
+    }
+
+    return Results.Ok(movie);
+});
+
+app.MapDelete("/api/admin/movies/{id:int}", (HttpContext ctx, MovieService service, VideoUploadService uploads, int id) =>
+{
+    if (!IsAdminRequest(ctx, service)) return Results.Unauthorized();
+
+    var deleted = service.DeleteCatalogMovie(id);
+    if (deleted == null) return Results.NotFound(new { Message = "Título não encontrado." });
+
+    var retainedVideoUrls = service.GetAdminCatalog()
+        .SelectMany(item => new[] { item.VideoUrl }.Concat(item.Episodes.Select(episode => episode.VideoUrl)))
+        .ToHashSet(StringComparer.Ordinal);
+    foreach (var oldVideoUrl in new[] { deleted.VideoUrl }.Concat(deleted.Episodes.Select(episode => episode.VideoUrl)).Distinct(StringComparer.Ordinal))
+    {
+        if (!retainedVideoUrls.Contains(oldVideoUrl)) uploads.DeleteManagedVideo(oldVideoUrl);
+    }
+
+    return Results.Ok(new { Message = "Título removido do catálogo." });
+});
+
+app.MapPost("/api/admin/videos", async (HttpContext ctx, MovieService service, VideoUploadService uploads) =>
+{
+    if (!IsAdminRequest(ctx, service))
+        return Results.Unauthorized();
+
+    var maxFileSize = uploads.MaxFileSize;
+    var requestBodyLimit = ctx.Features.Get<IHttpMaxRequestBodySizeFeature>();
+    if (requestBodyLimit is { IsReadOnly: false })
+    {
+        requestBodyLimit.MaxRequestBodySize = maxFileSize;
+    }
+
+    if (ctx.Request.ContentLength > maxFileSize)
+    {
+        return Results.Json(new { Message = "O vídeo excede o limite de tamanho configurado." }, statusCode: StatusCodes.Status413PayloadTooLarge);
+    }
+
+    try
+    {
+        var videoUrl = await uploads.SaveAsync(
+            ctx.Request.Body,
+            ctx.Request.Query["fileName"].ToString(),
+            ctx.Request.ContentLength,
+            ctx.RequestAborted);
+        return Results.Ok(new { Url = videoUrl });
+    }
+    catch (VideoUploadException ex)
+    {
+        return Results.Json(new { Message = ex.Message }, statusCode: ex.StatusCode);
+    }
+});
+
+app.MapGet("/uploads/{fileName}", (string fileName, VideoUploadService uploads) =>
+{
+    var path = uploads.GetManagedVideoPath(fileName);
+    if (path == null) return Results.NotFound();
+
+    var contentType = Path.GetExtension(fileName).Equals(".webm", StringComparison.OrdinalIgnoreCase)
+        ? "video/webm"
+        : "video/mp4";
+    return Results.File(path, contentType, enableRangeProcessing: true);
 });
 
 app.Run();

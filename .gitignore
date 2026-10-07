@@ -1,0 +1,3 @@
+netflix-clone/**/Data/*.db
+netflix-clone/**/Data/*.db-shm
+netflix-clone/**/Data/*.db-wal

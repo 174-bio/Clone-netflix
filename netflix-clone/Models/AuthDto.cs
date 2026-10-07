@@ -12,6 +12,35 @@ public record RecoverPasswordRequest(string Email);
 
 public record ResetPasswordRequest(string Email, string Token, string NewPassword);
 
+public record CatalogMovieRequest(
+    string Title,
+    string Description,
+    string Type,
+    string BackdropUrl,
+    string PosterUrl,
+    string VideoUrl,
+    int Year,
+    string Rating,
+    double Score,
+    int MatchScore,
+    string Duration,
+    List<string> Genres,
+    List<string> Cast,
+    string Director,
+    bool IsFeatured,
+    List<CatalogEpisodeRequest> Episodes
+);
+
+public record CatalogEpisodeRequest(
+    int Season,
+    int Number,
+    string Title,
+    string Description,
+    string Duration,
+    string ThumbnailUrl,
+    string VideoUrl
+);
+
 public record WatchProgressRequest(int MovieId, int? EpisodeId, double PositionSeconds, double DurationSeconds);
 
 public record RatingRequest(int Score);

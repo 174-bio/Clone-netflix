@@ -17,6 +17,7 @@ public class User
     public string Avatar { get; set; } = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public UserPreferences Preferences { get; set; } = new();
+    public bool IsAdmin { get; set; }
 }
 
 public class Episode

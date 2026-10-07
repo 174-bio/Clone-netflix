@@ -223,6 +223,7 @@ const app = (() => {
     dom.savePrefsBtn = document.getElementById('savePrefsBtn');
     dom.profileHistoryList = document.getElementById('profileHistoryList');
     dom.profileLogoutBtn = document.getElementById('profileLogoutBtn');
+    dom.profileAdminBtn = document.getElementById('profileAdminBtn');
 
     // Toast
     dom.toastNotification = document.getElementById('toastNotification');
@@ -349,6 +350,7 @@ const app = (() => {
     if (!dom.authNavContainer) return;
 
     if (state.user) {
+      dom.profileAdminBtn.hidden = !state.user.IsAdmin;
       dom.authNavContainer.innerHTML = `
         <div class="profile-menu" id="profileMenu" title="Menu de Perfil">
           <img src="${escapeHtml(state.user.Avatar)}" alt="${escapeHtml(state.user.Name)}" class="profile-avatar">
@@ -369,6 +371,11 @@ const app = (() => {
               <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
               Histórico & Progresso
             </a>
+            ${state.user.IsAdmin ? `
+            <a class="profile-dropdown-item" href="/admin.html">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2 3 6v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-4zm-1 15-4-4 1.41-1.41L11 14.17l4.59-4.58L17 11l-6 6z"/></svg>
+              Gerenciar catálogo
+            </a>` : ''}
             <div class="profile-divider"></div>
             <a class="profile-dropdown-item" onclick="app.logout()" style="color: #ff4d5a;">
               <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
