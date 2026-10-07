@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>CineStream - O Seu Universo Cinematográfico Premium</title>
+  <meta name="description" content="Assista aos melhores filmes, séries exclusivas e produções originais no CineStream em 4K Ultra HD com som imersivo. Crie sua conta e comece agora.">
+  <meta name="theme-color" content="#0d0e12">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%23ff1744'/><stop offset='100%' stop-color='%23b70020'/></linearGradient></defs><circle cx='50' cy='50' r='48' fill='%230e1017'/><polygon points='40,28 72,50 40,72' fill='url(%23g)'/></svg>">
+</head>
+<body>
+
+  <!-- ================= TOP FIXED NAVBAR ================= -->
+  <header class="navbar" id="navbar">
+    <div class="nav-left">
+      <!-- CineStream Logo -->
+      <a href="#" class="brand-logo" id="logoBtn" aria-label="CineStream Início">
+        <svg class="brand-icon" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff2a55"/>
+              <stop offset="50%" stop-color="#e50914"/>
+              <stop offset="100%" stop-color="#99001b"/>
+            </linearGradient>
+            <linearGradient id="glowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#ff5277" stop-opacity="0.8"/>
+              <stop offset="100%" stop-color="#ff1744" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect width="44" height="44" rx="12" fill="#141721"/>
+          <path d="M12 9L29 22L12 35V9Z" fill="url(#logoGrad)"/>
+          <path d="M22 14L35 22L22 30V14Z" fill="url(#glowGrad)"/>
+          <circle cx="22" cy="22" r="3" fill="#ffffff"/>
+        </svg>
+        <span class="brand-name">CINE<span>STREAM</span></span>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav class="desktop-nav" aria-label="Navegação Principal">
+        <ul class="nav-links">
+          <li><button class="nav-item active" data-view="home" id="navHome">Início</button></li>
+          <li><button class="nav-item" data-view="movies" id="navMovies">Filmes</button></li>
+          <li><button class="nav-item" data-view="series" id="navSeries">Séries</button></li>
+          <li><button class="nav-item" data-view="watchlist" id="navWatchlist">Minha Lista</button></li>
+          <li><button class="nav-item" data-view="explore" id="navExplore">Catálogo Completo</button></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="nav-right">
+      <!-- Search Box -->
+      <div class="search-wrapper" id="searchWrapper">
+        <button class="search-btn" id="searchBtn" aria-label="Abrir pesquisa" title="Pesquisar (Ctrl+K)">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M21.71 20.29l-5.4-5.4A8.93 8.93 0 0 0 18 9a9 9 0 1 0-9 9 8.93 8.93 0 0 0 5.89-2.31l5.4 5.4a1 1 0 0 0 1.42-1.42zM4 9a5 5 0 1 1 5 5 5 5 0 0 1-5-5z"/>
+          </svg>
+        </button>
+        <div class="search-input-container">
+          <input type="text" id="searchInput" class="search-input" placeholder="Buscar filmes, séries, elenco, gêneros..." autocomplete="off">
+          <button id="searchClear" class="search-clear" aria-label="Limpar pesquisa">&times;</button>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="dropdown-anchor">
+        <button class="nav-icon-btn" id="notificationsBtn" aria-label="Ver notificações" title="Notificações">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+          </svg>
+          <span class="notification-badge" id="notifBadge">3</span>
+        </button>
+        <div class="notification-dropdown" id="notificationDropdown">
+          <div class="dropdown-header">
+            <h4>Novidades e Estreias</h4>
+            <span class="badge-mini">3 novas</span>
+          </div>
+          <div class="notification-list">
+            <div class="notification-item" onclick="app.playVideo(1)">
+              <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=100&q=80" alt="Cyberpunk">
+              <div>
+                <h5>Cyberpunk: O Último Protocolo</h5>
+                <p>Estreia hoje em 4K HDR e Som 5.1 Dolby.</p>
+                <span class="notif-time">Há 2 horas</span>
+              </div>
+            </div>
+            <div class="notification-item" onclick="app.playVideo(23)">
+              <img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=100&q=80" alt="Nexus">
+              <div>
+                <h5>Nexus: Temporada 2 Disponível</h5>
+                <p>Assista aos novos episódios eletrizantes.</p>
+                <span class="notif-time">Ontem</span>
+              </div>
+            </div>
+            <div class="notification-item" onclick="app.playVideo(2)">
+              <img src="https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=100&q=80" alt="Horizonte">
+              <div>
+                <h5>Horizonte Interestelar alcançou #1</h5>
+                <p>O filme mais assistido da semana no CineStream.</p>
+                <span class="notif-time">Há 2 dias</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auth State / Profile Container -->
+      <div id="authNavContainer">
+        <!-- Injected dynamically: either Login/Register buttons or User Profile Avatar Menu -->
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= HERO BILLBOARD ================= -->
+  <section class="hero-billboard" id="heroBillboard">
+    <div class="hero-backdrop" id="heroBackdrop"></div>
+    <div class="hero-vignette"></div>
+    <div class="hero-content">
+      <div class="hero-badge-top">
+        <span class="pulse-dot"></span>
+        <span id="heroTopRank">#1 Em Alta no CineStream</span>
+      </div>
+      <h1 class="hero-title" id="heroTitle">Cyberpunk: O Último Protocolo</h1>
+      <div class="hero-meta">
+        <span class="match-score" id="heroMatch">★ 9.4 (99% relevante)</span>
+        <span class="age-badge badge-18" id="heroRating">18+</span>
+        <span id="heroYear">2026</span>
+        <span id="heroDuration">2h 18m</span>
+        <span class="quality-tag">4K ULTRA HD</span>
+        <span class="quality-tag">DOLBY 5.1</span>
+      </div>
+      <p class="hero-description" id="heroDesc">
+        Em uma Neo-São Paulo de 2088 dominada por megacorporações biônicas, um ex-hacker tático descobre um código neural capaz de reprogramar a consciência humana antes do Grande Blecaute.
+      </p>
+      <div class="hero-buttons">
+        <button class="btn btn-primary" id="heroPlayBtn">
+          <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          Assistir Agora
+        </button>
+        <button class="btn btn-secondary" id="heroInfoBtn">
+          <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+          Mais Detalhes
+        </button>
+        <button class="btn btn-glass" id="heroWatchlistBtn" title="Adicionar à Minha Lista">
+          <svg id="heroWatchlistIcon" width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span id="heroWatchlistText">Minha Lista</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="hero-right-tools">
+      <button class="btn-audio" id="heroSoundToggle" title="Ativar/Desativar Som" aria-label="Controle de Som">
+        <svg id="heroSoundIcon" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27l4.73 4.73H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>
+      </button>
+      <div class="hero-maturity-rating" id="heroMaturityRating">18+</div>
+    </div>
+  </section>
+
+  <!-- ================= ADVANCED FILTERS BAR (For Explore / Movies / Series) ================= -->
+  <section class="filters-bar-section" id="filtersBarSection">
+    <div class="filters-container">
+      <div class="filters-title-group">
+        <h2 id="currentViewTitle">Explorar Catálogo</h2>
+        <span class="results-count" id="filtersResultCount">32 títulos encontrados</span>
+      </div>
+
+      <div class="filters-controls-row">
+        <!-- Type Filter -->
+        <div class="filter-group">
+          <label for="filterType">Tipo:</label>
+          <select id="filterType" class="custom-select">
+            <option value="all">Todos os Tipos</option>
+            <option value="movie">Filmes</option>
+            <option value="series">Séries</option>
+          </select>
+        </div>
+
+        <!-- Genre Filter -->
+        <div class="filter-group">
+          <label for="filterGenre">Gênero:</label>
+          <select id="filterGenre" class="custom-select">
+            <option value="all">Todos os Gêneros</option>
+            <option value="Ação">Ação</option>
+            <option value="Ficção Científica">Ficção Científica</option>
+            <option value="Suspense">Suspense</option>
+            <option value="Fantasia">Fantasia</option>
+            <option value="Comédia">Comédia</option>
+            <option value="Animação">Animação</option>
+            <option value="Drama">Drama</option>
+            <option value="Policial">Policial</option>
+            <option value="Documentário">Documentário</option>
+            <option value="Romance">Romance</option>
+          </select>
+        </div>
+
+        <!-- Rating Filter -->
+        <div class="filter-group">
+          <label for="filterRating">Classificação:</label>
+          <select id="filterRating" class="custom-select">
+            <option value="all">Todas as Idades</option>
+            <option value="Livre">Livre</option>
+            <option value="10+">10+</option>
+            <option value="12+">12+</option>
+            <option value="14+">14+</option>
+            <option value="16+">16+</option>
+            <option value="18+">18+</option>
+          </select>
+        </div>
+
+        <!-- Min Score Filter -->
+        <div class="filter-group">
+          <label for="filterScore">Nota Mínima:</label>
+          <select id="filterScore" class="custom-select">
+            <option value="all">Qualquer Nota</option>
+            <option value="8.5">★ 8.5+</option>
+            <option value="9.0">★ 9.0+</option>
+            <option value="9.5">★ 9.5+ (Excelência)</option>
+          </select>
+        </div>
+
+        <!-- Sort By -->
+        <div class="filter-group">
+          <label for="filterSort">Ordenar por:</label>
+          <select id="filterSort" class="custom-select">
+            <option value="default">Relevância CineStream</option>
+            <option value="popular">Mais Populares</option>
+            <option value="recent">Lançamentos Recentes</option>
+            <option value="top_rated">Melhor Avaliados</option>
+          </select>
+        </div>
+
+        <button class="btn btn-sm btn-outline" id="clearFiltersBtn" title="Limpar Filtros">
+          Limpar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SEARCH RESULTS SECTION ================= -->
+  <section class="search-results-section" id="searchResultsSection">
+    <div class="section-header-row">
+      <h2 class="section-heading" id="searchResultsTitle">Resultados da Busca</h2>
+      <button class="btn btn-sm btn-outline" id="closeSearchBtn">Fechar Busca</button>
+    </div>
+    <div class="catalog-grid" id="searchResultsGrid"></div>
+    <div class="empty-state-card" id="searchEmptyState" style="display: none;">
+      <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 9v3m0 3h.01"/></svg>
+      <h3>Nenhum resultado encontrado</h3>
+      <p id="searchEmptyMsg">Tente pesquisar por outros termos, como "Ficção", "Ação", "Cyberpunk" ou pelo nome de um ator.</p>
+    </div>
+  </section>
+
+  <!-- ================= CATALOG GRID VIEW (When filtering or browsing by category) ================= -->
+  <section class="catalog-view-section" id="catalogViewSection" style="display: none;">
+    <div class="catalog-grid" id="catalogGrid"></div>
+  </section>
+
+  <!-- ================= HORIZONTAL ROWS (Home View) ================= -->
+  <main class="main-content" id="mainContent">
+    <div id="categoriesContainer"></div>
+  </main>
+
+  <!-- ================= MODAL: MOVIE DETAILS ================= -->
+  <div class="modal-overlay" id="movieModal" aria-hidden="true" role="dialog">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="modalCloseBtn" aria-label="Fechar detalhes">&times;</button>
+      
+      <div class="modal-hero" id="modalHero">
+        <div class="modal-hero-vignette"></div>
+        <div class="modal-hero-info">
+          <div class="badge-mini" id="modalTypeBadge">FILME ORIGINAL</div>
+          <h2 class="modal-title" id="modalTitle">Título</h2>
+          <div class="modal-actions">
+            <button class="btn btn-primary" id="modalPlayBtn">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              Assistir Agora
+            </button>
+            <button class="icon-btn-round" id="modalWatchlistBtn" title="Minha Lista" aria-label="Adicionar à lista">
+              <svg id="modalWatchlistIcon" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            </button>
+            <button class="icon-btn-round" id="modalLikeBtn" title="Gostei" aria-label="Curtir título">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div>
+            <div class="modal-metadata">
+              <span class="match-score" id="modalMatch">★ 9.4</span>
+              <span id="modalYear">2026</span>
+              <span class="age-badge badge-18" id="modalRating">18+</span>
+              <span id="modalDuration">2h 18m</span>
+              <span class="quality-tag">4K ULTRA HD</span>
+              <span class="quality-tag">DOLBY ATMOS</span>
+            </div>
+            
+            <p class="modal-synopsis" id="modalSynopsis">Descrição detalhada do filme ou série.</p>
+            
+            <!-- Interactive User Rating Box -->
+            <div class="user-rating-box">
+              <span class="rating-label">Sua Avaliação:</span>
+              <div class="stars-container" id="starRatingContainer">
+                <button class="star-btn" data-star="1" title="1 estrela">&#9733;</button>
+                <button class="star-btn" data-star="2" title="2 estrelas">&#9733;</button>
+                <button class="star-btn" data-star="3" title="3 estrelas">&#9733;</button>
+                <button class="star-btn" data-star="4" title="4 estrelas">&#9733;</button>
+                <button class="star-btn" data-star="5" title="5 estrelas">&#9733;</button>
+              </div>
+              <span class="rating-feedback" id="ratingFeedback">Avalie este título</span>
+            </div>
+          </div>
+
+          <div class="modal-details-sidebar">
+            <div class="detail-row"><strong>Direção:</strong> <span id="modalDirector">-</span></div>
+            <div class="detail-row"><strong>Elenco:</strong> <span id="modalCast">-</span></div>
+            <div class="detail-row"><strong>Gêneros:</strong> <span id="modalGenres">-</span></div>
+            <div class="detail-row"><strong>Curtidas:</strong> <span id="modalLikes">0</span></div>
+          </div>
+        </div>
+
+        <!-- Episodes Section (for series) -->
+        <div class="episodes-section" id="modalEpisodesSection" style="display: none;">
+          <div class="episodes-header">
+            <h3>Episódios Disponíveis</h3>
+            <span class="episodes-season-badge">Temporada 1</span>
+          </div>
+          <div class="episodes-list" id="modalEpisodesList"></div>
+        </div>
+
+        <!-- Similar Titles Section -->
+        <div class="similar-titles-section">
+          <h3>Títulos Semelhantes Recomendados</h3>
+          <div class="similar-grid" id="modalSimilarGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CINESTREAM VIDEO PLAYER ================= -->
+  <div class="video-player-container" id="videoPlayerContainer" aria-hidden="true">
+    <video class="video-element" id="mainVideoPlayer" preload="auto">
+      Seu navegador não suporta a reprodução deste vídeo.
+    </video>
+
+    <div class="player-overlay" id="playerOverlay">
+      <!-- Player Header -->
+      <div class="player-header">
+        <button class="btn-player-back" id="playerBackBtn" title="Voltar para Navegação (Esc)" aria-label="Voltar">
+          <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <div class="player-title-info">
+          <h2 id="playerTitle">Cyberpunk: O Último Protocolo</h2>
+          <p id="playerSubtitle">Filme Original CineStream • 4K HDR</p>
+        </div>
+        <div class="player-brand-tag">CINE<span>STREAM</span></div>
+      </div>
+
+      <!-- Player Center Play Watermark Animation -->
+      <div class="player-center-icon" id="playerCenterIcon">
+        <svg id="playerCenterSvg" width="64" height="64" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+
+      <!-- Player Bottom Controls -->
+      <div class="player-bottom-controls">
+        <!-- Seek Timeline -->
+        <div class="player-timeline-wrapper" id="playerTimeline" title="Arrastar para avançar/retroceder">
+          <div class="player-progress-bar" id="playerProgressBar">
+            <div class="player-scrubber-handle"></div>
+          </div>
+          <div class="timeline-tooltip" id="timelineTooltip">00:00</div>
+        </div>
+
+        <div class="player-controls-row">
+          <div class="player-controls-left">
+            <!-- Play/Pause -->
+            <button class="player-btn" id="playerPlayPauseBtn" title="Reproduzir / Pausar (Espaço)" aria-label="Play / Pause">
+              <svg id="playPauseIcon" width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+
+            <!-- Backward 10s -->
+            <button class="player-btn" id="playerBack10Btn" title="Voltar 10 segundos (← ou J)" aria-label="Voltar 10s">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+              <span class="btn-subtext">10</span>
+            </button>
+
+            <!-- Forward 10s -->
+            <button class="player-btn" id="playerFwd10Btn" title="Avançar 10 segundos (→ ou L)" aria-label="Avançar 10s">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+              <span class="btn-subtext">10</span>
+            </button>
+
+            <!-- Volume -->
+            <div class="volume-group">
+              <button class="player-btn" id="playerMuteBtn" title="Mudo (M)" aria-label="Volume">
+                <svg id="volumeIcon" width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+              </button>
+              <input type="range" class="volume-slider" id="playerVolumeSlider" min="0" max="1" step="0.05" value="1" aria-label="Nível de Volume">
+            </div>
+
+            <!-- Time Display -->
+            <div class="player-time-display">
+              <span id="playerCurrentTime">00:00</span> <span class="time-sep">/</span> <span id="playerTotalTime">00:00</span>
+            </div>
+          </div>
+
+          <div class="player-controls-right">
+            <!-- Audio & Subtitles -->
+            <div class="player-menu-anchor">
+              <button class="player-btn" id="playerSubtitleBtn" title="Legendas e Áudio" aria-label="Legendas">
+                <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-9 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+              </button>
+              <div class="player-popup-menu" id="subtitlesMenu">
+                <h5>Legendas</h5>
+                <label><input type="radio" name="subs" value="off" checked> Desativadas</label>
+                <label><input type="radio" name="subs" value="pt"> Português (Brasil) [CC]</label>
+                <label><input type="radio" name="subs" value="en"> English [CC]</label>
+                <label><input type="radio" name="subs" value="es"> Español</label>
+              </div>
+            </div>
+
+            <!-- Quality -->
+            <div class="player-menu-anchor">
+              <button class="player-btn" id="playerQualityBtn" title="Qualidade de Vídeo" aria-label="Qualidade">
+                <span class="hd-badge">4K</span>
+              </button>
+              <div class="player-popup-menu" id="qualityMenu">
+                <h5>Qualidade de Vídeo</h5>
+                <label><input type="radio" name="quality" value="auto" checked> Automática (4K Ultra HD)</label>
+                <label><input type="radio" name="quality" value="1080p"> 1080p Full HD</label>
+                <label><input type="radio" name="quality" value="720p"> 720p HD</label>
+                <label><input type="radio" name="quality" value="480p"> 480p Economia de Dados</label>
+              </div>
+            </div>
+
+            <!-- Speed -->
+            <select class="speed-selector" id="playerSpeedSelect" title="Velocidade de Reprodução" aria-label="Velocidade">
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1.0x Normal</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2.0">2.0x</option>
+            </select>
+
+            <!-- Fullscreen -->
+            <button class="player-btn" id="playerFullscreenBtn" title="Tela Cheia (F)" aria-label="Tela Cheia">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= AUTH MODALS (LOGIN, CADASTRO, RECUPERAÇÃO) ================= -->
+  <!-- 1. LOGIN MODAL -->
+  <div class="modal-overlay" id="loginModal" aria-hidden="true" role="dialog">
+    <div class="auth-card">
+      <button class="modal-close-btn" id="loginCloseBtn" aria-label="Fechar">&times;</button>
+      <div class="auth-header">
+        <div class="brand-logo mb-2">
+          <span class="brand-name">CINE<span>STREAM</span></span>
+        </div>
+        <h3>Bem-vindo de Volta</h3>
+        <p>Acesse seu perfil cinematográfico premium</p>
+      </div>
+
+      <form id="loginForm" class="auth-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="loginEmail">E-mail</label>
+          <input type="email" id="loginEmail" required placeholder="seuemail@exemplo.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Senha</label>
+          <input type="password" id="loginPassword" required placeholder="Sua senha secreta" autocomplete="current-password">
+        </div>
+        <div class="form-row-actions">
+          <a href="#" id="forgotPasswordLink" class="text-link">Esqueceu a senha?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="loginSubmitBtn">Entrar na Plataforma</button>
+        <button type="button" class="btn btn-demo btn-block" id="demoLoginBtn">
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+          Entrar como Usuário Demonstração
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        <span>Não tem uma conta no CineStream?</span>
+        <button type="button" class="btn-link" id="goToRegisterBtn">Cadastre-se Gratuitamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. REGISTER MODAL -->
+  <div class="modal-overlay" id="registerModal" aria-hidden="true" role="dialog">
+    <div class="auth-card">
+      <button class="modal-close-btn" id="registerCloseBtn" aria-label="Fechar">&times;</button>
+      <div class="auth-header">
+        <div class="brand-logo mb-2">
+          <span class="brand-name">CINE<span>STREAM</span></span>
+        </div>
+        <h3>Criar Nova Conta</h3>
+        <p>Comece a assistir produções premiadas em 4K</p>
+      </div>
+
+      <form id="registerForm" class="auth-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="regName">Nome Completo</label>
+          <input type="text" id="regName" required placeholder="Como prefere ser chamado" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="regEmail">E-mail</label>
+          <input type="email" id="regEmail" required placeholder="seuemail@exemplo.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="regPassword">Senha (mínimo 6 caracteres)</label>
+          <input type="password" id="regPassword" required minlength="6" placeholder="Crie uma senha forte" autocomplete="new-password">
+        </div>
+
+        <div class="form-group">
+          <label>Escolha o Seu Avatar Cinematográfico:</label>
+          <div class="avatar-picker-grid" id="registerAvatarGrid"></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="registerSubmitBtn">Criar Minha Conta</button>
+      </form>
+
+      <div class="auth-footer">
+        <span>Já é cadastrado?</span>
+        <button type="button" class="btn-link" id="goToLoginBtn">Fazer Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. RECOVER PASSWORD MODAL -->
+  <div class="modal-overlay" id="recoverModal" aria-hidden="true" role="dialog">
+    <div class="auth-card">
+      <button class="modal-close-btn" id="recoverCloseBtn" aria-label="Fechar">&times;</button>
+      <div class="auth-header">
+        <h3>Recuperar Acesso</h3>
+        <p>Insira seu e-mail cadastrado para receber instruções seguras</p>
+      </div>
+      <form id="recoverForm" class="auth-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="recoverEmail">E-mail</label>
+          <input type="email" id="recoverEmail" required placeholder="seuemail@exemplo.com">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="recoverSubmitBtn">Enviar Instruções</button>
+      </form>
+      <div class="auth-footer">
+        <button type="button" class="btn-link" id="recoverBackToLoginBtn">Voltar para o Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: USER PROFILE & SETTINGS ================= -->
+  <div class="modal-overlay" id="profileModal" aria-hidden="true" role="dialog">
+    <div class="modal-card profile-dialog">
+      <button class="modal-close-btn" id="profileCloseBtn" aria-label="Fechar">&times;</button>
+      
+      <div class="profile-modal-header">
+        <div class="profile-hero-avatar-wrap">
+          <img src="" id="profileHeroAvatar" alt="Avatar do Usuário" class="profile-hero-avatar">
+          <button class="btn-edit-avatar" id="editAvatarBtn" title="Trocar Avatar">Trocar</button>
+        </div>
+        <div class="profile-hero-info">
+          <h2 id="profileHeroName">Nome do Usuário</h2>
+          <p id="profileHeroEmail">email@cinestream.tv</p>
+          <span class="user-tier-badge">Membro CineStream VIP • 4K HDR</span>
+        </div>
+      </div>
+
+      <div class="profile-tabs">
+        <button class="profile-tab-btn active" data-tab="general">Geral & Dados</button>
+        <button class="profile-tab-btn" data-tab="security">Segurança & Senha</button>
+        <button class="profile-tab-btn" data-tab="playback">Reprodução</button>
+        <button class="profile-tab-btn" data-tab="history">Histórico</button>
+      </div>
+
+      <div class="profile-tab-content">
+        <!-- Tab 1: General -->
+        <div class="tab-pane active" id="tabGeneral">
+          <form id="profileGeneralForm" onsubmit="return false;">
+            <div class="form-group">
+              <label for="editProfileName">Nome de Exibição</label>
+              <input type="text" id="editProfileName" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+              <label>Galeria de Avatares CineStream:</label>
+              <div class="avatar-picker-grid" id="profileAvatarGrid"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="saveProfileGeneralBtn">Salvar Alterações</button>
+          </form>
+        </div>
+
+        <!-- Tab 2: Security -->
+        <div class="tab-pane" id="tabSecurity">
+          <form id="profileSecurityForm" onsubmit="return false;">
+            <div class="form-group">
+              <label for="currentPassword">Senha Atual</label>
+              <input type="password" id="currentPassword" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="newPassword">Nova Senha</label>
+              <input type="password" id="newPassword" class="form-control" required minlength="6">
+            </div>
+            <button type="submit" class="btn btn-primary" id="savePasswordBtn">Atualizar Senha</button>
+          </form>
+        </div>
+
+        <!-- Tab 3: Playback Preferences -->
+        <div class="tab-pane" id="tabPlayback">
+          <div class="pref-item">
+            <div>
+              <strong>Reproduzir próximo episódio automaticamente</strong>
+              <p>Inicia a reprodução contínua ao terminar um episódio.</p>
+            </div>
+            <input type="checkbox" id="prefAutoPlay" checked class="custom-switch">
+          </div>
+          <div class="form-group mt-3">
+            <label for="prefQuality">Qualidade de Streaming Padrão:</label>
+            <select id="prefQuality" class="custom-select">
+              <option value="Auto">Automática (Adaptação Inteligente)</option>
+              <option value="1080p">1080p Full HD</option>
+              <option value="4K">4K Ultra HD (Máxima Fidelidade)</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary mt-2" id="savePrefsBtn">Salvar Preferências</button>
+        </div>
+
+        <!-- Tab 4: History -->
+        <div class="tab-pane" id="tabHistory">
+          <h4>Títulos Assistidos Recentemente</h4>
+          <div class="history-list" id="profileHistoryList"></div>
+        </div>
+      </div>
+
+      <div class="profile-modal-footer">
+        <button class="btn btn-danger-outline" id="profileLogoutBtn">
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+          Sair da Conta (Logout)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MOBILE BOTTOM NAVIGATION ================= -->
+  <nav class="mobile-bottom-nav" aria-label="Navegação Mobile">
+    <button class="mobile-nav-item active" data-view="home" id="mNavHome">
+      <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Início</span>
+    </button>
+    <button class="mobile-nav-item" data-view="movies" id="mNavMovies">
+      <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+      <span>Filmes</span>
+    </button>
+    <button class="mobile-nav-item" data-view="series" id="mNavSeries">
+      <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+      <span>Séries</span>
+    </button>
+    <button class="mobile-nav-item" data-view="watchlist" id="mNavWatchlist">
+      <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+      <span>Minha Lista</span>
+    </button>
+    <button class="mobile-nav-item" id="mNavProfile">
+      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80" alt="Perfil" id="mNavAvatar" class="mobile-avatar-img">
+      <span>Perfil</span>
+    </button>
+  </nav>
+
+  <!-- ================= TOAST NOTIFICATION ================= -->
+  <div class="toast" id="toastNotification" role="alert">
+    <div class="toast-icon-wrap" id="toastIconWrap">
+      <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+    </div>
+    <span id="toastMessage">Operação realizada com sucesso!</span>
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand-row">
+        <div class="brand-logo">
+          <span class="brand-name">CINE<span>STREAM</span></span>
+        </div>
+        <p class="brand-tagline">O seu universo cinematográfico com qualidade 4K Ultra HD e produções originais premiadas.</p>
+      </div>
+
+      <div class="footer-columns">
+        <div class="footer-col">
+          <h5>Navegação</h5>
+          <a href="#" onclick="app.switchView('home'); return false;">Página Inicial</a>
+          <a href="#" onclick="app.switchView('movies'); return false;">Catálogo de Filmes</a>
+          <a href="#" onclick="app.switchView('series'); return false;">Séries Originais</a>
+          <a href="#" onclick="app.switchView('watchlist'); return false;">Minha Lista</a>
+          <a href="#" onclick="app.switchView('explore'); return false;">Todos os Títulos</a>
+        </div>
+        <div class="footer-col">
+          <h5>Categorias Populares</h5>
+          <a href="#" onclick="app.filterByGenre('Ação'); return false;">Ação & Adrenalina</a>
+          <a href="#" onclick="app.filterByGenre('Ficção Científica'); return false;">Ficção Científica</a>
+          <a href="#" onclick="app.filterByGenre('Suspense'); return false;">Suspense & Mistério</a>
+          <a href="#" onclick="app.filterByGenre('Comédia'); return false;">Comédias</a>
+          <a href="#" onclick="app.filterByGenre('Documentário'); return false;">Documentários</a>
+        </div>
+        <div class="footer-col">
+          <h5>Ajuda & Suporte</h5>
+          <a href="#" onclick="app.showToast('Central de ajuda disponível 24h.'); return false;">Central de Ajuda</a>
+          <a href="#" onclick="app.showToast('Todos os dispositivos suportam streaming 4K.'); return false;">Dispositivos Compatíveis</a>
+          <a href="#" onclick="app.showToast('Conexão estável recomendada: 15Mbps.'); return false;">Teste de Velocidade</a>
+          <a href="#" onclick="app.showToast('Termos de serviço CineStream.'); return false;">Termos de Uso</a>
+          <a href="#" onclick="app.showToast('Política de privacidade CineStream.'); return false;">Privacidade</a>
+        </div>
+        <div class="footer-col">
+          <h5>Conta & Assinatura</h5>
+          <a href="#" onclick="app.openProfileModal(); return false;">Gerenciar Perfil</a>
+          <a href="#" onclick="app.openProfileModal('security'); return false;">Segurança da Conta</a>
+          <a href="#" onclick="app.openProfileModal('history'); return false;">Histórico de Visualização</a>
+          <a href="#" onclick="app.openProfileModal('playback'); return false;">Preferências de Áudio</a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© 2026 CineStream Plataforma de Streaming. Todos os direitos reservados. Vídeos e demonstrações abertas de domínio público (Blender Foundation / Creative Commons).</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
