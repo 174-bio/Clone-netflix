@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cinestream
+    name: cinestream-app
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
