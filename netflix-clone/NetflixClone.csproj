@@ -13,4 +13,9 @@
     <PackageReference Include="AWSSDK.S3" Version="4.0.104.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="../Migrations/001_initial_schema.sql"
+                      LogicalName="NetflixClone.Migrations.001_initial_schema.sql" />
+  </ItemGroup>
+
 </Project>

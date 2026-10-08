@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Npgsql;
@@ -21,6 +22,9 @@ internal sealed class SqliteDataStore
 {
     private const string SqliteProvider = "sqlite";
     private const string PostgresProvider = "postgres";
+    private const string InitialPostgresMigration = "001_initial_schema";
+    private const string InitialPostgresMigrationResource =
+        "NetflixClone.Migrations.001_initial_schema.sql";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -113,53 +117,7 @@ internal sealed class SqliteDataStore
     {
         if (_provider == PostgresProvider)
         {
-            using var connection = OpenConnection();
-            using var command = connection.CreateCommand();
-            command.CommandText = """
-                CREATE TABLE IF NOT EXISTS users (
-                    id TEXT PRIMARY KEY,
-                    email TEXT NOT NULL UNIQUE,
-                    payload JSONB NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS movies (
-                    id TEXT PRIMARY KEY,
-                    payload JSONB NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS watchlist (
-                    user_id TEXT NOT NULL,
-                    movie_id TEXT NOT NULL,
-                    payload JSONB NOT NULL,
-                    PRIMARY KEY (user_id, movie_id)
-                );
-                CREATE TABLE IF NOT EXISTS progress (
-                    user_id TEXT NOT NULL,
-                    movie_id TEXT NOT NULL,
-                    payload JSONB NOT NULL,
-                    PRIMARY KEY (user_id, movie_id)
-                );
-                CREATE TABLE IF NOT EXISTS ratings (
-                    user_id TEXT NOT NULL,
-                    movie_id TEXT NOT NULL,
-                    payload JSONB NOT NULL,
-                    PRIMARY KEY (user_id, movie_id)
-                );
-                CREATE TABLE IF NOT EXISTS sessions (
-                    token TEXT PRIMARY KEY,
-                    payload JSONB NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS password_reset_tokens (
-                    email TEXT NOT NULL,
-                    token TEXT NOT NULL,
-                    payload JSONB NOT NULL,
-                    PRIMARY KEY (email, token)
-                );
-                CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
-                CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist (user_id);
-                CREATE INDEX IF NOT EXISTS idx_progress_user_id ON progress (user_id);
-                CREATE INDEX IF NOT EXISTS idx_ratings_user_id ON ratings (user_id);
-                CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions (token);
-                """;
-            command.ExecuteNonQuery();
+            ApplyPostgresMigrations();
             return;
         }
 
@@ -205,6 +163,64 @@ internal sealed class SqliteDataStore
             );
             """;
         sqliteCommand.ExecuteNonQuery();
+    }
+
+    private void ApplyPostgresMigrations()
+    {
+        using var connection = OpenConnection();
+        using (var createMigrationsTable = connection.CreateCommand())
+        {
+            createMigrationsTable.CommandText = """
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    version TEXT PRIMARY KEY,
+                    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+                """;
+            createMigrationsTable.ExecuteNonQuery();
+        }
+
+        using (var checkMigration = connection.CreateCommand())
+        {
+            checkMigration.CommandText =
+                "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = @version);";
+            var versionParameter = checkMigration.CreateParameter();
+            versionParameter.ParameterName = "@version";
+            versionParameter.Value = InitialPostgresMigration;
+            checkMigration.Parameters.Add(versionParameter);
+            if (Convert.ToBoolean(checkMigration.ExecuteScalar()))
+            {
+                return;
+            }
+        }
+
+        using var migrationStream = Assembly.GetExecutingAssembly()
+            .GetManifestResourceStream(InitialPostgresMigrationResource)
+            ?? throw new InvalidOperationException(
+                $"A migration PostgreSQL '{InitialPostgresMigration}' não foi incluída no aplicativo.");
+        using var reader = new StreamReader(migrationStream);
+        var migrationSql = reader.ReadToEnd();
+
+        using var transaction = connection.BeginTransaction();
+        using (var applyMigration = connection.CreateCommand())
+        {
+            applyMigration.Transaction = transaction;
+            applyMigration.CommandText = migrationSql;
+            applyMigration.ExecuteNonQuery();
+        }
+
+        using (var recordMigration = connection.CreateCommand())
+        {
+            recordMigration.Transaction = transaction;
+            recordMigration.CommandText =
+                "INSERT INTO schema_migrations (version) VALUES (@version);";
+            var versionParameter = recordMigration.CreateParameter();
+            versionParameter.ParameterName = "@version";
+            versionParameter.Value = InitialPostgresMigration;
+            recordMigration.Parameters.Add(versionParameter);
+            recordMigration.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
     }
 
     private DbConnection OpenConnection()
@@ -306,7 +322,8 @@ internal sealed class SqliteDataStore
             Port = uri.IsDefaultPort ? 5432 : uri.Port,
             Database = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/')),
             Username = Uri.UnescapeDataString(credentials[0]),
-            Password = Uri.UnescapeDataString(credentials[1])
+            Password = Uri.UnescapeDataString(credentials[1]),
+            SslMode = SslMode.Require
         };
 
         if (string.IsNullOrWhiteSpace(builder.Database))

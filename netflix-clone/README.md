@@ -97,7 +97,7 @@ Por padrão, o app usa SQLite local (`Database__Provider=sqlite` / `Database__Pa
 
 O serviço web gratuito do Render pode dormir quando fica sem tráfego e seu filesystem é efêmero. Por isso, o banco e os vídeos não devem ser gravados no disco do serviço. O Blueprint (`render.yaml`) usa o Render apenas para executar o app; o banco e os vídeos são configurados em serviços externos:
 
-- **Neon PostgreSQL Free**: banco externo; o schema JSONB usado pelo app é criado automaticamente no primeiro start.
+- **Neon PostgreSQL Free**: banco externo; a migration versionada do schema JSONB é aplicada uma única vez no primeiro start.
 - **Cloudflare R2 Standard**: armazenamento de vídeos compatível com S3; o serviço aceita MP4/WebM e grava as URLs públicas no catálogo.
 - **Render Free Web Service**: hospedagem do app e deploy automático a partir do GitHub.
 
@@ -108,7 +108,7 @@ Os planos gratuitos têm limites e podem mudar. No momento em que esta configura
 1. Crie uma conta e um projeto no Neon usando o plano Free.
 2. Copie a connection string PostgreSQL do projeto. Não a coloque no GitHub.
 3. No Render, defina `Database__Provider=postgres` e `DATABASE_URL` com essa connection string.
-4. O app converte URLs `postgres://`/`postgresql://`, abre conexões pelo pool padrão do Npgsql e cria as tabelas no startup.
+4. O app converte URLs `postgres://`/`postgresql://`, exige TLS, abre conexões pelo pool padrão do Npgsql e aplica `Migrations/001_initial_schema.sql` no primeiro start. As versões aplicadas são registradas em `schema_migrations`; não é necessário executar SQL manualmente.
 
 #### Configurar vídeos no Cloudflare R2
 
@@ -128,7 +128,7 @@ O app calcula o espaço já usado no bucket antes de cada upload e recusa envios
 4. Inicie o deploy e confira os logs do Render. O health check usa `/`.
 5. Teste cadastro/login, criação de catálogo, upload de um vídeo e recarregamento do site. Confirme que a URL do vídeo aponta para o domínio público do bucket.
 
-O `.env.example` contém apenas exemplos. O `.env` real deve permanecer local e ignorado pelo Git. O GitHub é a origem do código e do deploy; não é usado como banco de dados nem como armazenamento runtime de vídeos.
+O `.env.example` contém apenas exemplos. O `.env` real deve permanecer local e ignorado pelo Git. O GitHub é a origem do código e do deploy; não é usado como banco de dados nem como armazenamento runtime de vídeos. A migration mantém os registros como payloads JSONB nas tabelas da aplicação; isso ainda não é um modelo relacional totalmente normalizado com chaves estrangeiras.
 
 ### Painel de administração e envio de vídeos
 

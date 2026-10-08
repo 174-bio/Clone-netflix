@@ -1,2 +1,0 @@
--- This file intentionally stays empty until a seed is needed.
--- The demo catalog is bootstrapped in MovieService.SeedInitialData().

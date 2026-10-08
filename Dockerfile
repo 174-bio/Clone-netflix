@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY netflix-clone/NetflixClone.csproj netflix-clone/
+COPY Migrations/ Migrations/
 RUN dotnet restore netflix-clone/NetflixClone.csproj
 COPY netflix-clone/ netflix-clone/
 WORKDIR /src/netflix-clone
