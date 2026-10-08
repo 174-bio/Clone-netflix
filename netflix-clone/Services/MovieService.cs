@@ -39,7 +39,12 @@ public class MovieService
             databasePath = Path.Combine(AppContext.BaseDirectory, databasePath);
         }
 
-        _dataStore = new SqliteDataStore(databasePath);
+        var connectionString = configuration["DATABASE_URL"]
+            ?? configuration.GetConnectionString("DefaultConnection");
+        _dataStore = new SqliteDataStore(
+            databasePath,
+            configuration["Database:Provider"],
+            connectionString);
 
         LoadData();
     }

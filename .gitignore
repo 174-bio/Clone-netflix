@@ -1,3 +1,9 @@
 netflix-clone/**/Data/*.db
 netflix-clone/**/Data/*.db-shm
 netflix-clone/**/Data/*.db-wal
+netflix-clone/**/Data/uploads/
+.env
+.env.*
+!.env.example
+netflix-clone/bin/
+netflix-clone/obj/

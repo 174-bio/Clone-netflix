@@ -55,8 +55,8 @@
 - **Backend**: C# 10 / ASP.NET Core Minimal APIs (.NET 10)
 - **Frontend**: HTML5 Semântico, Vanilla JavaScript (ES6+ modular)
 - **Estilização**: Vanilla CSS3 com Variáveis de Design, Flexbox, CSS Grid, Glassmorphism e Keyframe Animations
-- **Banco de Dados**: SQLite (`Data/cinestream.db`) para contas, catálogo e dados dos usuários
-- **Vídeos**: Streams em MP4 abertos e compatíveis com todos os navegadores modernos
+- **Banco de Dados**: SQLite para desenvolvimento local e PostgreSQL para produção no Render; os dados do catálogo, usuários e progresso são persistidos em tabelas com JSONB/JSON e relacionamentos explícitos
+- **Vídeos**: Streams em MP4 e uploads gerenciados com armazenamento persistente em disco do Render/volume
 
 ---
 
@@ -69,26 +69,66 @@
 
 1. **Abra o terminal no diretório do projeto:**
    ```bash
-   cd c:\Users\fic\.gemini\antigravity-ide\scratch\netflix-clone
+   cd /workspaces/Clone-netflix
    ```
 
-2. **Compile a aplicação:**
+2. **Configure as variáveis locais (opcional):**
    ```bash
-   dotnet build
+   cp .env.example .env
    ```
 
-3. **Execute o servidor:**
+3. **Compile a aplicação:**
    ```bash
+   dotnet build netflix-clone/NetflixClone.csproj
+   ```
+
+4. **Execute o servidor:**
+   ```bash
+   cd netflix-clone
    dotnet run
    ```
 
-4. **Acesse no seu navegador:**
+5. **Acesse no seu navegador:**
    Abra [http://localhost:5167](http://localhost:5167)
 
-O banco SQLite é criado automaticamente na primeira execução. Os dados de uma instalação
-anterior em `Data/cinestream_data.json` são importados automaticamente. Para escolher outro
-caminho para o arquivo do banco, configure a variável de ambiente `Database__Path`;
-em produção, use um volume persistente para que o banco sobreviva a novos deploys.
+Por padrão, o app usa SQLite local (`Database__Provider=sqlite` / `Database__Path=Data/cinestream.db`) e uploads locais para desenvolvimento. Em produção, use PostgreSQL e armazenamento de objetos compatível com S3.
+
+### Deploy gratuito no Render com dados fora do filesystem efêmero
+
+O serviço web gratuito do Render pode dormir quando fica sem tráfego e seu filesystem é efêmero. Por isso, o banco e os vídeos não devem ser gravados no disco do serviço. O Blueprint (`render.yaml`) usa o Render apenas para executar o app; o banco e os vídeos são configurados em serviços externos:
+
+- **Neon PostgreSQL Free**: banco externo; o schema JSONB usado pelo app é criado automaticamente no primeiro start.
+- **Cloudflare R2 Standard**: armazenamento de vídeos compatível com S3; o serviço aceita MP4/WebM e grava as URLs públicas no catálogo.
+- **Render Free Web Service**: hospedagem do app e deploy automático a partir do GitHub.
+
+Os planos gratuitos têm limites e podem mudar. No momento em que esta configuração foi preparada, o Neon Free oferece 1 GB por projeto e o R2 inclui 10 GB-mês, 1 milhão de operações Classe A e 10 milhões Classe B por mês. O R2 pode cobrar uso acima da franquia; confira os limites e configure alertas/budgets na conta antes de ativar cobrança. O serviço gratuito do Render pode levar cerca de um minuto para acordar após ficar inativo.
+
+#### Configurar o PostgreSQL no Neon
+
+1. Crie uma conta e um projeto no Neon usando o plano Free.
+2. Copie a connection string PostgreSQL do projeto. Não a coloque no GitHub.
+3. No Render, defina `Database__Provider=postgres` e `DATABASE_URL` com essa connection string.
+4. O app converte URLs `postgres://`/`postgresql://`, abre conexões pelo pool padrão do Npgsql e cria as tabelas no startup.
+
+#### Configurar vídeos no Cloudflare R2
+
+1. Crie um bucket R2 Standard dedicado ao app e um token S3 com acesso somente a esse bucket, permissões de leitura e gravação de objetos.
+2. Copie o endpoint S3 da conta (`https://ACCOUNT_ID.r2.cloudflarestorage.com`), o nome do bucket, o Access Key ID e o Secret Access Key.
+3. Habilite um domínio público de leitura para o bucket (domínio `r2.dev` ou domínio próprio) e copie a URL pública. Os vídeos enviados são públicos para reprodução.
+4. No Render, configure `Uploads__Provider=s3`, `Uploads__S3Endpoint`, `Uploads__S3Region=auto`, `Uploads__S3Bucket`, `Uploads__S3AccessKeyId`, `Uploads__S3SecretAccessKey` e `Uploads__PublicBaseUrl`.
+5. Configure `Uploads__MaxFileSizeBytes=1073741824` (1 GB por arquivo), `Uploads__MaxStorageBytes=9000000000` (limite total padrão de 9 GB) e `Admin__Emails` com os e-mails autorizados para administrar o catálogo.
+
+O app calcula o espaço já usado no bucket antes de cada upload e recusa envios que ultrapassariam o limite configurado. Use um bucket dedicado: objetos gravados por fora do site também contam para esse limite. Isso ajuda a ficar dentro da franquia de armazenamento informada pelo R2, mas não é um teto de cobrança para operações ou tráfego; acompanhe o uso e configure alertas na conta Cloudflare.
+
+#### Deploy pelo GitHub
+
+1. Faça push do projeto para o GitHub e conecte o repositório ao Render.
+2. Crie/atualize o serviço pelo Blueprint `render.yaml` e escolha o plano Free para o serviço web.
+3. Preencha no Render as variáveis marcadas como `sync: false`, usando os valores do Neon e do R2. Não cole chaves ou connection strings em arquivos do repositório, issues ou mensagens.
+4. Inicie o deploy e confira os logs do Render. O health check usa `/`.
+5. Teste cadastro/login, criação de catálogo, upload de um vídeo e recarregamento do site. Confirme que a URL do vídeo aponta para o domínio público do bucket.
+
+O `.env.example` contém apenas exemplos. O `.env` real deve permanecer local e ignorado pelo Git. O GitHub é a origem do código e do deploy; não é usado como banco de dados nem como armazenamento runtime de vídeos.
 
 ### Painel de administração e envio de vídeos
 
@@ -98,18 +138,13 @@ do perfil mostrará **Gerenciar catálogo**. O painel permite criar, editar e ex
 e séries, manter episódios, enviar vídeos MP4/WebM e escolher o título em destaque.
 Não autorize `demo@cinestream.tv`: essa conta de demonstração tem credenciais públicas.
 
-Os vídeos são gravados em `Data/uploads` por padrão. O limite padrão é 1 GB por arquivo;
-configure `Uploads__MaxFileSizeBytes` para alterar. Para hospedagem em contêiner, monte um
-volume persistente e configure `Uploads__Directory` para o caminho do volume. Por exemplo,
-em Render, monte o disco em `/var/data` e defina `Database__Path=/var/data/cinestream.db`,
-`Uploads__Directory=/var/data/uploads` e `Admin__Emails=seu-email@exemplo.com`.
-O disco efêmero do plano gratuito não preserva vídeos nem banco após reinícios/deploys.
+Os vídeos são gravados em `Data/uploads` por padrão no desenvolvimento. No Render, use R2 (`Uploads__Provider=s3`); não use armazenamento local para uploads, pois o filesystem do plano gratuito é efêmero.
 
 ---
 
 ## 👤 Credenciais de Demonstração
 
-Para testar imediatamente sem precisar preencher o formulário de cadastro:
+Para testar imediatamente sem precisar preencher o formulário de cadastro:t
 - **E-mail:** `demo@cinestream.tv`
 - **Senha:** `cine123456`
 - *Ou simplesmente clique no botão "Entrar como Usuário Demonstração" no modal de login.*

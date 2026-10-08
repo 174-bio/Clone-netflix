@@ -359,7 +359,7 @@ app.MapPost("/api/admin/movies", (HttpContext ctx, MovieService service, VideoUp
     return Results.Created($"/api/movies/{movie!.Id}", movie);
 });
 
-app.MapPut("/api/admin/movies/{id:int}", (HttpContext ctx, MovieService service, VideoUploadService uploads, int id, CatalogMovieRequest request) =>
+app.MapPut("/api/admin/movies/{id:int}", async (HttpContext ctx, MovieService service, VideoUploadService uploads, int id, CatalogMovieRequest request) =>
 {
     if (!IsAdminRequest(ctx, service)) return Results.Unauthorized();
 
@@ -375,13 +375,14 @@ app.MapPut("/api/admin/movies/{id:int}", (HttpContext ctx, MovieService service,
         .ToHashSet(StringComparer.Ordinal);
     foreach (var oldVideoUrl in new[] { previous.VideoUrl }.Concat(previous.Episodes.Select(episode => episode.VideoUrl)).Distinct(StringComparer.Ordinal))
     {
-        if (!retainedVideoUrls.Contains(oldVideoUrl)) uploads.DeleteManagedVideo(oldVideoUrl);
+        if (!retainedVideoUrls.Contains(oldVideoUrl))
+            await uploads.DeleteManagedVideoAsync(oldVideoUrl, ctx.RequestAborted);
     }
 
     return Results.Ok(movie);
 });
 
-app.MapDelete("/api/admin/movies/{id:int}", (HttpContext ctx, MovieService service, VideoUploadService uploads, int id) =>
+app.MapDelete("/api/admin/movies/{id:int}", async (HttpContext ctx, MovieService service, VideoUploadService uploads, int id) =>
 {
     if (!IsAdminRequest(ctx, service)) return Results.Unauthorized();
 
@@ -393,7 +394,8 @@ app.MapDelete("/api/admin/movies/{id:int}", (HttpContext ctx, MovieService servi
         .ToHashSet(StringComparer.Ordinal);
     foreach (var oldVideoUrl in new[] { deleted.VideoUrl }.Concat(deleted.Episodes.Select(episode => episode.VideoUrl)).Distinct(StringComparer.Ordinal))
     {
-        if (!retainedVideoUrls.Contains(oldVideoUrl)) uploads.DeleteManagedVideo(oldVideoUrl);
+        if (!retainedVideoUrls.Contains(oldVideoUrl))
+            await uploads.DeleteManagedVideoAsync(oldVideoUrl, ctx.RequestAborted);
     }
 
     return Results.Ok(new { Message = "Título removido do catálogo." });

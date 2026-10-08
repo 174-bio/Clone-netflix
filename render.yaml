@@ -6,3 +6,30 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Database__Provider
+        value: postgres
+      - key: DATABASE_URL
+        sync: false
+      - key: Admin__Emails
+        sync: false
+      - key: Uploads__Provider
+        value: s3
+      - key: Uploads__S3Endpoint
+        sync: false
+      - key: Uploads__S3Region
+        value: auto
+      - key: Uploads__S3Bucket
+        sync: false
+      - key: Uploads__S3AccessKeyId
+        sync: false
+      - key: Uploads__S3SecretAccessKey
+        sync: false
+      - key: Uploads__PublicBaseUrl
+        sync: false
+      - key: Uploads__MaxFileSizeBytes
+        value: "1073741824"
+      - key: Uploads__MaxStorageBytes
+        value: "9000000000"
