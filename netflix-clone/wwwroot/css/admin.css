@@ -59,15 +59,28 @@
 }
 
 .admin-catalog,
-.admin-editor {
+.admin-editor,
+.admin-storage {
   padding: 24px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
 }
 
-.admin-catalog {
+.admin-catalog,
+.admin-storage {
   margin-bottom: 28px;
+}
+
+.admin-storage-progress {
+  display: block;
+  width: 100%;
+  height: 12px;
+  accent-color: var(--primary-color);
+}
+
+.admin-storage .admin-section-heading {
+  margin-bottom: 12px;
 }
 
 .admin-section-heading {
@@ -286,7 +299,8 @@
   }
 
   .admin-catalog,
-  .admin-editor {
+  .admin-editor,
+  .admin-storage {
     padding: 16px;
   }
 

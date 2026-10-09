@@ -6,6 +6,9 @@
     catalogCount: document.getElementById('catalogCount'),
     catalogList: document.getElementById('catalogList'),
     catalogSearch: document.getElementById('catalogSearch'),
+    storageUsed: document.getElementById('storageUsed'),
+    storageRemaining: document.getElementById('storageRemaining'),
+    storageUsageProgress: document.getElementById('storageUsageProgress'),
     editor: document.getElementById('movieEditor'),
     editorTitle: document.getElementById('editorTitle'),
     form: document.getElementById('movieForm'),
@@ -198,11 +201,36 @@
     renderCatalog();
   }
 
+  function renderStorageUsage(usage) {
+    const usedBytes = Number(usage.UsedBytes);
+    const maxBytes = Number(usage.MaxBytes);
+    if (!Number.isFinite(usedBytes) || !Number.isFinite(maxBytes) || usedBytes < 0 || maxBytes <= 0) {
+      throw new Error('O servidor retornou informações inválidas de armazenamento.');
+    }
+
+    const remainingBytes = Math.max(0, maxBytes - usedBytes);
+    const percentage = Math.min(100, (usedBytes / maxBytes) * 100);
+    const gigabytes = bytes => `${(bytes / 1_000_000_000).toFixed(2)} GB`;
+    elements.storageUsed.textContent = `${gigabytes(usedBytes)} usados de ${gigabytes(maxBytes)}`;
+    elements.storageRemaining.textContent = `${gigabytes(remainingBytes)} disponíveis`;
+    elements.storageUsageProgress.value = percentage;
+    elements.storageUsageProgress.setAttribute(
+      'aria-valuetext',
+      `${gigabytes(usedBytes)} usados; ${gigabytes(remainingBytes)} disponíveis`
+    );
+  }
+
+  async function loadStorageUsage() {
+    const usage = await apiRequest('/api/admin/videos/storage');
+    renderStorageUsage(usage);
+  }
+
   async function deleteMovie(movie) {
     if (!window.confirm(`Excluir "${movie.Title}" do catálogo? Esta ação não pode ser desfeita.`)) return;
     try {
       await apiRequest(`/api/admin/movies/${movie.Id}`, { method: 'DELETE' });
       await loadCatalog();
+      await loadStorageUsage();
       showNotice(`"${movie.Title}" foi removido do catálogo.`, true);
       if (Number(elements.movieId.value) === movie.Id) resetEditor();
     } catch (error) {
@@ -244,7 +272,14 @@
         urlInput.value = data.Url;
         fileInput.value = '';
         progress.value = 100;
-        showNotice('Vídeo enviado com sucesso.', true);
+        if (data.StorageUsage) {
+          renderStorageUsage(data.StorageUsage);
+          showNotice('Vídeo enviado com sucesso.', true);
+        } else {
+          loadStorageUsage()
+            .then(() => showNotice('Vídeo enviado com sucesso.', true))
+            .catch(() => showNotice('Vídeo enviado, mas não foi possível atualizar o uso do armazenamento.'));
+        }
       } catch (error) {
         showNotice(error.message || 'Resposta inválida do servidor.');
       }
@@ -329,12 +364,14 @@
       return;
     }
 
-    try {
-      await loadCatalog();
-    } catch (error) {
-      showNotice(error.message);
-      if (/não autorizado|unauthorized/i.test(error.message)) {
-        window.setTimeout(() => window.location.replace('/'), 1500);
+    const results = await Promise.allSettled([loadCatalog(), loadStorageUsage()]);
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        showNotice(result.reason.message || 'Não foi possível carregar os dados do painel.');
+        if (/não autorizado|unauthorized/i.test(result.reason.message)) {
+          window.setTimeout(() => window.location.replace('/'), 1500);
+          break;
+        }
       }
     }
 

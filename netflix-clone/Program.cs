@@ -401,6 +401,14 @@ app.MapDelete("/api/admin/movies/{id:int}", async (HttpContext ctx, MovieService
     return Results.Ok(new { Message = "Título removido do catálogo." });
 });
 
+app.MapGet("/api/admin/videos/storage", async (HttpContext ctx, MovieService service, VideoUploadService uploads) =>
+{
+    if (!IsAdminRequest(ctx, service))
+        return Results.Unauthorized();
+
+    return Results.Ok(await uploads.GetStorageUsageAsync(ctx.RequestAborted));
+});
+
 app.MapPost("/api/admin/videos", async (HttpContext ctx, MovieService service, VideoUploadService uploads) =>
 {
     if (!IsAdminRequest(ctx, service))
@@ -425,7 +433,8 @@ app.MapPost("/api/admin/videos", async (HttpContext ctx, MovieService service, V
             ctx.Request.Query["fileName"].ToString(),
             ctx.Request.ContentLength,
             ctx.RequestAborted);
-        return Results.Ok(new { Url = videoUrl });
+        var storageUsage = await uploads.GetStorageUsageAsync(ctx.RequestAborted);
+        return Results.Ok(new { Url = videoUrl, StorageUsage = storageUsage });
     }
     catch (VideoUploadException ex)
     {

@@ -29,6 +29,17 @@
 
     <div class="admin-notice" id="adminNotice" role="status" hidden></div>
 
+    <section class="admin-storage" aria-labelledby="storageHeading">
+      <div class="admin-section-heading">
+        <div>
+          <h2 id="storageHeading">Armazenamento de vídeos</h2>
+          <span id="storageUsed">Carregando uso do armazenamento…</span>
+        </div>
+        <span id="storageRemaining" aria-live="polite"></span>
+      </div>
+      <progress class="admin-storage-progress" id="storageUsageProgress" max="100" value="0" aria-label="Uso do armazenamento de vídeos"></progress>
+    </section>
+
     <section class="admin-catalog">
       <div class="admin-section-heading">
         <div>

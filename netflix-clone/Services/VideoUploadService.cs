@@ -10,6 +10,8 @@ public sealed class VideoUploadException(string message, int statusCode) : Excep
     public int StatusCode { get; } = statusCode;
 }
 
+public sealed record VideoStorageUsage(long UsedBytes, long MaxBytes);
+
 public sealed class VideoUploadService : IDisposable
 {
     private const int BufferSize = 64 * 1024;
@@ -81,7 +83,52 @@ public sealed class VideoUploadService : IDisposable
     }
 
     public long MaxFileSize => _maxFileSize;
+    public long MaxStorageBytes => _maxStorageBytes;
     public string UploadDirectory => _uploadDirectory;
+
+    public async Task<VideoStorageUsage> GetStorageUsageAsync(CancellationToken cancellationToken = default)
+    {
+        long storedBytes = 0;
+        if (_s3Client == null)
+        {
+            foreach (var path in Directory.EnumerateFiles(_uploadDirectory))
+            {
+                if (IsValidFileName(Path.GetFileName(path)))
+                {
+                    storedBytes = checked(storedBytes + new FileInfo(path).Length);
+                }
+            }
+
+            return new VideoStorageUsage(storedBytes, _maxStorageBytes);
+        }
+
+        string? continuationToken = null;
+        do
+        {
+            var response = await _s3Client.ListObjectsV2Async(new ListObjectsV2Request
+            {
+                BucketName = _bucketName,
+                ContinuationToken = continuationToken
+            }, cancellationToken);
+
+            foreach (var item in response.S3Objects)
+            {
+                if (item.Size is not long size || size < 0)
+                {
+                    throw new InvalidDataException("O armazenamento remoto retornou um tamanho de objeto inválido.");
+                }
+
+                storedBytes = checked(storedBytes + size);
+            }
+
+            continuationToken = response.IsTruncated == true
+                ? response.NextContinuationToken
+                    ?? throw new InvalidDataException("A listagem de objetos retornou uma página incompleta.")
+                : null;
+        } while (continuationToken != null);
+
+        return new VideoStorageUsage(storedBytes, _maxStorageBytes);
+    }
 
     private static string ResolveDirectory(string directory)
     {
@@ -194,13 +241,13 @@ public sealed class VideoUploadService : IDisposable
                 throw new VideoUploadException("O arquivo não corresponde a um vídeo MP4 ou WebM válido.", StatusCodes.Status400BadRequest);
             }
 
+            await EnsureStorageCapacityAsync(totalBytes, cancellationToken);
             if (_s3Client == null)
             {
                 File.Move(temporaryPath, finalPath);
             }
             else
             {
-                await EnsureStorageCapacityAsync(totalBytes, cancellationToken);
                 await using var uploadStream = new FileStream(
                     temporaryPath,
                     FileMode.Open,
@@ -344,38 +391,8 @@ public sealed class VideoUploadService : IDisposable
 
     private async Task EnsureStorageCapacityAsync(long incomingBytes, CancellationToken cancellationToken)
     {
-        if (_s3Client == null)
-        {
-            return;
-        }
-
-        long storedBytes = 0;
-        string? continuationToken = null;
-        do
-        {
-            var response = await _s3Client.ListObjectsV2Async(new ListObjectsV2Request
-            {
-                BucketName = _bucketName,
-                ContinuationToken = continuationToken
-            }, cancellationToken);
-
-            foreach (var item in response.S3Objects)
-            {
-                if (item.Size is not long size || size < 0)
-                {
-                    throw new InvalidDataException("O armazenamento remoto retornou um tamanho de objeto inválido.");
-                }
-
-                storedBytes = checked(storedBytes + size);
-            }
-
-            continuationToken = response.IsTruncated == true
-                ? response.NextContinuationToken
-                    ?? throw new InvalidDataException("A listagem de objetos retornou uma página incompleta.")
-                : null;
-        } while (continuationToken != null);
-
-        if (incomingBytes > _maxStorageBytes - storedBytes)
+        var usage = await GetStorageUsageAsync(cancellationToken);
+        if (incomingBytes > usage.MaxBytes - usage.UsedBytes)
         {
             throw new VideoUploadException(
                 "O armazenamento de vídeos atingiu o limite configurado. Remova vídeos antigos ou aumente a franquia.",
